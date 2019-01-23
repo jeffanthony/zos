@@ -1,7 +1,6 @@
 import Logger from '../utils/Logger';
 import { sendTransaction, deploy } from '../utils/Transactions';
 import Contracts from '../artifacts/Contracts';
-import ContractFactory from '../artifacts/ContractFactory';
 import { Contract } from 'web3-eth-contract';
 
 const log = new Logger('ImplementationDirectory');
@@ -26,7 +25,7 @@ export default class ImplementationDirectory {
     return new this(directory, txParams);
   }
 
-  public static getContractClass(): ContractFactory {
+  public static getContractClass(): Contract {
     return Contracts.getFromLib('ImplementationDirectory');
   }
 

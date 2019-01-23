@@ -7,7 +7,6 @@ import { deploy } from '../utils/Transactions';
 import { toAddress } from '../utils/Addresses';
 import { bytecodeDigest } from '..';
 import { buildCallData, callDescription, CalldataInfo } from '../utils/ABIs';
-import ContractFactory from '../artifacts/ContractFactory';
 import { Contract } from 'web3-eth-contract';
 import { ContractInterface } from './AppProject';
 import { toSemanticVersion } from '../utils/Semver';
@@ -54,7 +53,7 @@ export default class SimpleProject  {
     return contractClass.at(proxy.address);
   }
 
-  public async upgradeProxy(proxyAddress: string, contractClass: ContractFactory, { packageName, contractName, initMethod: initMethodName, initArgs, redeployIfChanged }: ContractInterface = {}): Promise<Contract> {
+  public async upgradeProxy(proxyAddress: string, contractClass: Contract, { packageName, contractName, initMethod: initMethodName, initArgs, redeployIfChanged }: ContractInterface = {}): Promise<Contract> {
     proxyAddress = toAddress(proxyAddress);
     const implementationAddress = await this._getOrDeployImplementation(contractClass, packageName, contractName, redeployIfChanged);
     const initCallData = this._getAndLogInitCallData(contractClass, initMethodName, initArgs, implementationAddress, 'Upgrading');
@@ -71,7 +70,7 @@ export default class SimpleProject  {
     return proxy;
   }
 
-  public async setImplementation(contractClass: ContractFactory, contractName?: string): Promise<any> {
+  public async setImplementation(contractClass: Contract, contractName?: string): Promise<any> {
     log.info(`Deploying logic contract for ${contractClass.contractName}`);
     if (!contractName) contractName = contractClass.contractName;
     const implementation: any = await deploy(contractClass, [], this.txParams);
@@ -118,7 +117,7 @@ export default class SimpleProject  {
     delete this.dependencies[name];
   }
 
-  public async _getOrDeployImplementation(contractClass: ContractFactory, packageName: string, contractName?: string, redeployIfChanged?: boolean): Promise<string | never> {
+  public async _getOrDeployImplementation(contractClass: Contract, packageName: string, contractName?: string, redeployIfChanged?: boolean): Promise<string | never> {
     if (!contractName) contractName = contractClass.contractName;
 
     const implementation = !packageName || packageName === this.name
@@ -129,7 +128,7 @@ export default class SimpleProject  {
     return implementation;
   }
 
-  public async _getOrDeployOwnImplementation(contractClass: ContractFactory, contractName: string, redeployIfChanged?: boolean): Promise<string> {
+  public async _getOrDeployOwnImplementation(contractClass: Contract, contractName: string, redeployIfChanged?: boolean): Promise<string> {
     const existing: Implementation = this.implementations[contractName];
     const contractChanged: boolean = existing && existing.bytecodeHash !== bytecodeDigest(contractClass.deployedBinary);
     const shouldRedeploy: boolean = !existing || (redeployIfChanged && contractChanged);
@@ -145,7 +144,7 @@ export default class SimpleProject  {
     return thepackage.getImplementation(version, contractName);
   }
 
-  private _getAndLogInitCallData(contractClass: ContractFactory, initMethodName?: string, initArgs?: string[], implementationAddress?: string, actionLabel?: string): string | null {
+  private _getAndLogInitCallData(contractClass: Contract, initMethodName?: string, initArgs?: string[], implementationAddress?: string, actionLabel?: string): string | null {
     if (initMethodName) {
       const { method: initMethod, callData }: CalldataInfo = buildCallData(contractClass, initMethodName, initArgs);
       log.info(`${actionLabel} proxy to logic contract ${implementationAddress} and initializing by calling ${callDescription(initMethod, initArgs)}`);

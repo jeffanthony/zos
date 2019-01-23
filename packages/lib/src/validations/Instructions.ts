@@ -1,15 +1,15 @@
 import Contracts from '../artifacts/Contracts';
-import ContractFactory from '../artifacts/ContractFactory';
+import { Contract } from 'web3-eth-contract';
 
-export function hasSelfDestruct(contractClass: ContractFactory): boolean {
+export function hasSelfDestruct(contractClass: Contract): boolean {
   return hasTypeIdentifier(contractClass, 't_function_selfdestruct_nonpayable$_t_address_$returns$__$');
 }
 
-export function hasDelegateCall(contractClass: ContractFactory): boolean {
+export function hasDelegateCall(contractClass: Contract): boolean {
   return hasTypeIdentifier(contractClass, 't_function_baredelegatecall_nonpayable$__$returns$_t_bool_$');
 }
 
-function hasTypeIdentifier(contractClass: ContractFactory, typeIdentifier: string): boolean {
+function hasTypeIdentifier(contractClass: Contract, typeIdentifier: string): boolean {
   for (const node of contractClass.ast.nodes.filter((n) => n.name === contractClass.contractName)) {
     if (hasKeyValue(node, 'typeIdentifier', typeIdentifier)) return true;
     for (const baseContract of node.baseContracts || []) {

@@ -7,16 +7,7 @@ import { TransactionReceipt } from 'web3/types';
 import Contracts from './Contracts';
 import _ from 'lodash';
 
-interface ContractSchema {
-  contractName: string;
-  abi: any;
-  ast: any;
-  bytecode: string;
-  deployedBytecode: string;
-}
-
-// TS-TODO: Review which members could be private.
-export default class ContractFactory {
+class ContractFactory {
 
   public schema: any;
   public abi: any;
@@ -32,7 +23,7 @@ export default class ContractFactory {
   public storageInfo: StorageLayoutInfo;
   public warnings: any;
 
-  constructor(schema: ContractSchema, timeout) {
+  constructor(schema: any, timeout) {
     this.schema = schema;
     this.abi = schema.abi;
     this.ast = schema.ast;
@@ -44,7 +35,7 @@ export default class ContractFactory {
     this._setBinaryIfPossible();
   }
 
-  private _inject(instance: Contract, receipt?: TransactionReceipt, transactionHash?: string): void {
+  private _inject(instance: any, receipt?: TransactionReceipt, transactionHash?: string): void {
     instance.zosInjections = {
       jsonInterface: this.schema,
       deploymentTransactionReceipt: receipt,
@@ -54,8 +45,12 @@ export default class ContractFactory {
   }
 
   public async new(...passedArguments): Promise<Contract> {
-    this._validateNonEmptyBinary();
-    this._validateNonUnlinkedLibraries();
+
+    if(this.bytecode === '') throw new Error(`A bytecode must be provided for contract ${this.contractName}.`);
+    if(hasUnlinkedVariables(this.binary)) {
+      const libraries = getSolidityLibNames(this.binary);
+      throw new Error(`${this.contractName} bytecode contains unlinked libraries: ${libraries.join(', ')}`);
+    }
 
     const [args, txParams] = await this._parseArguments(passedArguments);
     if (!txParams.data) txParams.data = this.binary;
@@ -123,17 +118,6 @@ export default class ContractFactory {
     if (!hasUnlinkedVariables(this.bytecode)) {
       this.binary = this.bytecode;
       this.deployedBinary = this.deployedBytecode;
-    }
-  }
-
-  private _validateNonEmptyBinary(): void | never {
-    if (this.bytecode === '') throw new Error(`A bytecode must be provided for contract ${this.contractName}.`);
-  }
-
-  private _validateNonUnlinkedLibraries(): void | never {
-    if (hasUnlinkedVariables(this.binary)) {
-      const libraries = getSolidityLibNames(this.binary);
-      throw new Error(`${this.contractName} bytecode contains unlinked libraries: ${libraries.join(', ')}`);
     }
   }
 }

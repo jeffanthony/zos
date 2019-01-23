@@ -1,7 +1,8 @@
 import glob from 'glob';
 import path from 'path';
-import ContractFactory from './ContractFactory';
 import ZWeb3 from './ZWeb3';
+import { Contract } from 'web3-eth-contract';
+import { validateBytecodeForDeployment } from '../utils/Bytecode';
 
 export default class Contracts {
   private static DEFAULT_SYNC_TIMEOUT: number = 240000;
@@ -47,15 +48,15 @@ export default class Contracts {
     return `${process.cwd()}/node_modules/${dependency}/build/contracts/${contractName}.json`;
   }
 
-  public static getFromLocal(contractName: string): ContractFactory {
+  public static getFromLocal(contractName: string): Contract {
     return Contracts._getFromPath(Contracts.getLocalPath(contractName));
   }
 
-  public static getFromLib(contractName: string): ContractFactory {
+  public static getFromLib(contractName: string): Contract {
     return Contracts._getFromPath(Contracts.getLibPath(contractName));
   }
 
-  public static getFromNodeModules(dependency: string, contractName: string): ContractFactory {
+  public static getFromNodeModules(dependency: string, contractName: string): Contract {
     return Contracts._getFromPath(Contracts.getNodeModulesPath(dependency, contractName));
   }
 
@@ -79,8 +80,36 @@ export default class Contracts {
     Contracts.artifactDefaults = { ...Contracts.getArtifactsDefaults(), ...defaults };
   }
 
-  private static _getFromPath(targetPath: string): ContractFactory {
-    const schema: any = require(targetPath);
-    return new ContractFactory(schema, Contracts.getSyncTimeout());
+  private static _getFromPath(targetPath: string): Contract {
+    const jsonInterface = require(targetPath);
+    const contract = ZWeb3.contract(jsonInterface, null, Contracts.getArtifactsDefaults());
+    contract.zosInjections = { jsonInterface };
+    return contract;
+  }
+
+  // ** TODO: These come from the old Contract and could be moved somewhere else.
+
+  public static async deployContract(contract: Contract, constructorArgs: any[], txParams: any): Contract {
+    return new Promise(async (resolve, reject) => {
+      validateBytecodeForDeployment(contract.zosInjections.jsonInterface);
+      const mergedTxParams = { ...(await Contracts.getDefaultTxParams()), txParams };
+      let receipt, transactionHash;
+      const tx = contract.deploy({ data: contract.zosInjections.jsonInterface.bytecode, arguments: constructorArgs });
+      tx.send(mergedTxParams)
+        .on('error', (error) => reject(error))
+        .on('receipt', (deploymentReceipt) => receipt = deploymentReceipt)
+        .on('transactionHash', (txHash) => transactionHash = txHash)
+        .then((instance) => {
+          instance.zosInjections.deploymentTransactionReceipt = receipt;
+          instance.zosInjections.deploymentTransactionHash = transactionHash;
+          resolve(instance);
+        })
+        .catch((error) => reject(error));
+    });
+  }
+
+  public static async retrieveDeployedContract(contract: Contract, atAddress: string): Contract {
+    contract._address = atAddress;
+    return contract;
   }
 }

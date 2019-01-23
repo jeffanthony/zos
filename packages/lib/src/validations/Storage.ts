@@ -4,8 +4,8 @@ import reverse from 'lodash.reverse';
 import path from 'path';
 import process from 'process';
 import { getBuildArtifacts } from '../artifacts/BuildArtifacts';
-import ContractFactory from '../artifacts/ContractFactory.js';
 import { BuildArtifacts } from '../artifacts/BuildArtifacts.js';
+import { Contract } from 'web3-eth-contract';
 import {
   Node,
   NodeMapping,
@@ -15,7 +15,7 @@ import {
 } from '../utils/ContractAST';
 
 // TS-TODO: define return type after typing class members below.
-export function getStorageLayout(contract: ContractFactory, artifacts: BuildArtifacts): StorageLayoutInfo {
+export function getStorageLayout(contract: Contract, artifacts: BuildArtifacts): StorageLayoutInfo {
 
   if (!artifacts) artifacts = getBuildArtifacts();
 
@@ -60,7 +60,7 @@ export interface StorageLayoutInfo {
 class StorageLayout {
 
   private artifacts: BuildArtifacts;
-  private contract: ContractFactory;
+  private contract: Contract;
   private imports: Set<any>;
 
   private nodes: NodeMapping;
@@ -69,7 +69,7 @@ class StorageLayout {
   public types: TypeInfoMapping;
   public storage: StorageInfo[];
 
-  constructor(contract: ContractFactory, artifacts: BuildArtifacts) {
+  constructor(contract: Contract, artifacts: BuildArtifacts) {
 
     this.artifacts = artifacts;
     this.contract = contract;

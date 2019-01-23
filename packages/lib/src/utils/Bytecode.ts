@@ -47,6 +47,14 @@ export function isSolidityLib(bytecode: string): boolean {
   return matches == null ? false : matches.length > 0;
 }
 
+export function validateBytecodeForDeployment(jsonInterface: any): void | never {
+  if(jsonInterface.bytecode === '') throw new Error(`A bytecode must be provided for contract ${jsonInterface.contractName}.`);
+  if(hasUnlinkedVariables(jsonInterface.bytecode)) {
+    const libraries = getSolidityLibNames(jsonInterface.bytecode);
+    throw new Error(`${jsonInterface.contractName} bytecode contains unlinked libraries: ${libraries.join(', ')}`);
+  }
+}
+
 // TS-TODO: Define interface for returned object.
 function splitCode(instance: any): {constructor: string, body: string} {
   const binary = instance.zosInjections.factory.binary.replace(/^0x/, '');

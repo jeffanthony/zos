@@ -7,7 +7,6 @@ import Package from '../application/Package';
 import ImplementationDirectory from '../application/ImplementationDirectory';
 import BasePackageProject from './BasePackageProject';
 import SimpleProject from './SimpleProject';
-import ContractFactory from '../artifacts/ContractFactory';
 import { DeployError } from '../utils/errors/DeployError';
 import { semanticVersionToString } from '../utils/Semver';
 import { Contract } from 'web3-eth-contract';
@@ -117,20 +116,20 @@ export default class AppProject extends BasePackageProject {
   }
 
   // TODO: Testme
-  public async createContract(contractClass: ContractFactory, { packageName, contractName, initMethod, initArgs }: ContractInterface = {}): Promise<Contract> {
+  public async createContract(contractClass: Contract, { packageName, contractName, initMethod, initArgs }: ContractInterface = {}): Promise<Contract> {
     if (!contractName) contractName = contractClass.contractName;
     if (!packageName) packageName = this.name;
     return this.app.createContract(contractClass, packageName, contractName, initMethod, initArgs);
   }
 
-  public async createProxy(contractClass: ContractFactory, { packageName, contractName, initMethod, initArgs }: ContractInterface = {}): Promise<Contract> {
+  public async createProxy(contractClass: Contract, { packageName, contractName, initMethod, initArgs }: ContractInterface = {}): Promise<Contract> {
     if (!contractName) contractName = contractClass.contractName;
     if (!packageName) packageName = this.name;
     if (!isEmpty(initArgs) && !initMethod) initMethod = 'initialize';
     return this.app.createProxy(contractClass, packageName, contractName, initMethod, initArgs);
   }
 
-  public async upgradeProxy(proxyAddress: string, contractClass: ContractFactory, { packageName, contractName, initMethod, initArgs }: ContractInterface = {}): Promise<Contract> {
+  public async upgradeProxy(proxyAddress: string, contractClass: Contract, { packageName, contractName, initMethod, initArgs }: ContractInterface = {}): Promise<Contract> {
     if (!contractName) contractName = contractClass.contractName;
     if (!packageName) packageName = this.name;
     return this.app.upgradeProxy(proxyAddress, contractClass, packageName, contractName, initMethod, initArgs);

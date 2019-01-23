@@ -1,18 +1,18 @@
 import isEmpty from 'lodash.isempty';
 import Contracts from '../artifacts/Contracts';
-import ContractFactory from '../artifacts/ContractFactory.js';
 import { Node } from '../utils/ContractAST';
+import { Contract } from 'web3-eth-contract';
 
-export function hasInitialValuesInDeclarations(contractClass: ContractFactory): boolean {
+export function hasInitialValuesInDeclarations(contractClass: Contract): boolean {
   return detectInitialValues(contractClass);
 }
 
-function detectInitialValues(contractClass: ContractFactory): boolean {
+function detectInitialValues(contractClass: Contract): boolean {
   const nodes = contractClass.ast.nodes.filter((n) => n.name === contractClass.contractName);
   for (const node of nodes) {
     if (hasInitialValues(node)) return true;
     for (const baseContract of node.baseContracts || []) {
-      const parentContract: ContractFactory = Contracts.getFromLocal(baseContract.baseName.name);
+      const parentContract: Contract = Contracts.getFromLocal(baseContract.baseName.name);
       return detectInitialValues(parentContract);
     }
   }

@@ -1,8 +1,8 @@
 import encodeCall from '../helpers/encodeCall';
 import ContractAST, { Node } from './ContractAST';
-import ContractFactory from '../artifacts/ContractFactory';
-import { hasUnlinkedVariables, getSolidityLibNames } from './Bytecode';
+import { hasUnlinkedVariables, getSolidityLibNames, validateBytecodeForDeployment } from './Bytecode';
 import ZWeb3 from '../artifacts/ZWeb3';
+import { Contract } from 'web3-eth-contract';
 
 export interface CalldataInfo {
   method: FunctionInfo;
@@ -19,20 +19,19 @@ interface FunctionInfo {
   inputs: InputInfo[];
 }
 
-export function buildDeploymentCallData(contract: ContractFactory, args: any[], txParams: any): string {
-  if(contract.bytecode === '') throw new Error(`A bytecode must be provided for contract ${contract.contractName}`);
-  if(hasUnlinkedVariables(contract.binary)) throw new Error(`${contract.contractName} bytecode contains unlinked libraries: ${getSolidityLibNames(contract.binary).join(', ')}`);
+export function buildDeploymentCallData(contract: Contract, args: any[], txParams: any): string {
+  validateBytecodeForDeployment(contract);
   return ZWeb3.contract(contract.abi).deploy({data: contract.binary, arguments: args}).encodeABI();
 }
 
-export function buildCallData(contractClass: ContractFactory, methodName: string, args: any[]): CalldataInfo {
+export function buildCallData(contractClass: Contract, methodName: string, args: any[]): CalldataInfo {
   const method = getABIFunction(contractClass, methodName, args);
   const argTypes = method.inputs.map((input) => input.type);
   const callData = encodeCall(method.name, argTypes, args);
   return { method, callData };
 }
 
-export function getABIFunction(contractClass: ContractFactory, methodName: string, args: any[]): FunctionInfo {
+export function getABIFunction(contractClass: Contract, methodName: string, args: any[]): FunctionInfo {
   const targetMethod: FunctionInfo = tryGetTargetFunction(contractClass, methodName, args);
   if (targetMethod) methodName = targetMethod.name;
 
@@ -49,7 +48,7 @@ export function getABIFunction(contractClass: ContractFactory, methodName: strin
   }
 }
 
-function tryGetTargetFunction(contractClass: ContractFactory, methodName: string, args: string[] | undefined): FunctionInfo {
+function tryGetTargetFunction(contractClass: Contract, methodName: string, args: string[] | undefined): FunctionInfo {
   // Match foo(uint256,string) as method name, and look for that in the ABI
   const match: string[] = methodName.match(/^\s*(.+)\((.*)\)\s*$/);
   if (match) {
@@ -70,7 +69,7 @@ function tryGetTargetFunction(contractClass: ContractFactory, methodName: string
   }
 }
 
-function tryGetFunctionNodeFromMostDerivedContract(contractClass: ContractFactory, methodName: string, args: any[]): Node | null {
+function tryGetFunctionNodeFromMostDerivedContract(contractClass: Contract, methodName: string, args: any[]): Node | null {
   const linearizedBaseContracts: Node[] | null = tryGetLinearizedBaseContracts(contractClass);
   if (!linearizedBaseContracts) return null;
 
@@ -91,7 +90,7 @@ function tryGetFunctionNodeFromMostDerivedContract(contractClass: ContractFactor
   throw Error(`Could not find method ${methodName} with ${args.length} arguments in contract ${contractClass.contractName}`);
 }
 
-function tryGetLinearizedBaseContracts(contractClass: ContractFactory): Node[] | null {
+function tryGetLinearizedBaseContracts(contractClass: Contract): Node[] | null {
   try {
     const ast: ContractAST = new ContractAST(contractClass, null, { nodesFilter: ['ContractDefinition', 'FunctionDefinition'] });
     return ast.getLinearizedBaseContracts(true);

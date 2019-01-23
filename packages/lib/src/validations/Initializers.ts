@@ -1,7 +1,7 @@
 import invertBy from 'lodash.invertby';
 import Contracts from '../artifacts/Contracts';
-import ContractFactory from '../artifacts/ContractFactory.js';
 import { Node } from '../utils/ContractAST';
+import { Contract } from 'web3-eth-contract';
 
 /**
  * Returns a mapping from a derived contract in the inheritance chain,
@@ -9,14 +9,14 @@ import { Node } from '../utils/ContractAST';
  * @param {*} contractClass contract class to check (including all its ancestors)
  */
 // TS-TODO: define return type
-export function getUninitializedBaseContracts(contractClass: ContractFactory): string[] {
+export function getUninitializedBaseContracts(contractClass: Contract): string[] {
   const uninitializedBaseContracts = {};
   getUninitializedDirectBaseContracts(contractClass, uninitializedBaseContracts);
   return invertBy(uninitializedBaseContracts);
 }
 
 // TS-TODO: define return type
-function getUninitializedDirectBaseContracts(contractClass: ContractFactory, uninitializedBaseContracts: any): void {
+function getUninitializedDirectBaseContracts(contractClass: Contract, uninitializedBaseContracts: any): void {
   // Check whether the contract has base contracts
   const baseContracts: any = contractClass.ast.nodes.find((n) => n.name === contractClass.contractName).baseContracts;
   if (baseContracts.length === 0) return;
@@ -24,7 +24,7 @@ function getUninitializedDirectBaseContracts(contractClass: ContractFactory, uni
   // Run check for the base contracts
   for (const baseContract of baseContracts) {
     const baseContractName: string = baseContract.baseName.name;
-    const baseContractClass: ContractFactory = Contracts.getFromLocal(baseContractName);
+    const baseContractClass: Contract = Contracts.getFromLocal(baseContractName);
     getUninitializedDirectBaseContracts(baseContractClass, uninitializedBaseContracts);
   }
 
@@ -33,7 +33,7 @@ function getUninitializedDirectBaseContracts(contractClass: ContractFactory, uni
   const baseContractInitializers: any = {};
   for (const baseContract of baseContracts) {
     const baseContractName: string = baseContract.baseName.name;
-    const baseContractClass: ContractFactory = Contracts.getFromLocal(baseContractName);
+    const baseContractClass: Contract = Contracts.getFromLocal(baseContractName);
     // TS-TODO: define type?
     const baseContractInitializer = getContractInitializer(baseContractClass);
     if (baseContractInitializer !== undefined) {
@@ -78,7 +78,7 @@ function getUninitializedDirectBaseContracts(contractClass: ContractFactory, uni
   return;
 }
 
-function getContractInitializer(contractClass: ContractFactory): Node | undefined {
+function getContractInitializer(contractClass: Contract): Node | undefined {
   const contractDefinition: Node = contractClass.ast.nodes
     .find((n: Node) => n.nodeType === 'ContractDefinition' && n.name === contractClass.contractName);
   const contractFunctions: Node[] = contractDefinition.nodes.filter((n) => n.nodeType === 'FunctionDefinition');
